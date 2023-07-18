@@ -6,13 +6,16 @@ namespace UncleRay;
 public class Engine
 {
     // Image
-    private readonly byte[] data;
+    public readonly byte[] Data;
     private readonly int width;
     private readonly int height;
-    private const int BytesPerPixel = 4;
+    private const int BytesPerPixel = 3;
 
     private Camera camera;
     private int RaysPerPixel = 15;
+
+    private long startTime = 0;
+    private TimeSpan deltaTime;
 
     private readonly Random rng = new(123);
 
@@ -20,9 +23,11 @@ public class Engine
     {
         this.width = width;
         this.height = height;
-        data = new byte[width * height * BytesPerPixel];
+        Data = new byte[width * height * BytesPerPixel];
 
         camera = new Camera((float)width / height);
+
+        startTime = Stopwatch.GetTimestamp();
     }
 
     void WriteBMP(BinaryWriter writer)
@@ -32,7 +37,7 @@ public class Engine
         // BMP Header
         writer.Write((byte)'B');
         writer.Write((byte)'M');
-        writer.Write((uint)data.Length);
+        writer.Write((uint)Data.Length);
 
         // BMP Core Header
         writer.Seek(14, SeekOrigin.Begin);
@@ -42,19 +47,19 @@ public class Engine
         writer.Write((ushort)1);
         writer.Write((ushort)(BytesPerPixel * 8));
         writer.Seek(34, SeekOrigin.Begin);
-        writer.Write((uint)data.Length);
+        writer.Write((uint)Data.Length);
 
         // Data
         writer.Seek(54, SeekOrigin.Begin);
-        writer.Write(data);
+        writer.Write(Data);
     }
 
     private void WritePixel(int x, int y, Vector3 color)
     {
-        var index = (x + y * width) * BytesPerPixel;
-        data[index + 0] = (byte)(color.Z * 255);
-        data[index + 1] = (byte)(color.Y * 255);
-        data[index + 2] = (byte)(color.X * 255);
+        var index = (x + (height - y - 1) * width) * BytesPerPixel;
+        Data[index + 0] = (byte)(color.Z * 255);
+        Data[index + 1] = (byte)(color.Y * 255);
+        Data[index + 2] = (byte)(color.X * 255);
     }
 
     public void SaveImage(string path)
@@ -81,7 +86,7 @@ public class Engine
 
     private Vector3 RayColor(Ray r)
     {
-        var t = HitSphere(new Vector3(0f, 0f, -1f), 0.5f, r);
+        var t = HitSphere(new Vector3(0f, 0f, -1f), 0.1f * MathF.Sin((float)deltaTime.TotalMilliseconds * 0.001f) + 0.5f, r);
 
         if (t > 0f)
         {
@@ -97,6 +102,7 @@ public class Engine
     public void Render()
     {
         var start = Stopwatch.GetTimestamp();
+        deltaTime = new TimeSpan(start - startTime);
 
         for(int y = height - 1; y >= 0; --y)
         {
@@ -123,8 +129,8 @@ public class Engine
             }
         }
 
-        var elapsed = new TimeSpan(Stopwatch.GetTimestamp() - start);
-        Console.WriteLine($"Render time: {elapsed.Microseconds/1000f:0.00}ms");
+        //var elapsed = new TimeSpan(Stopwatch.GetTimestamp() - start);
+        //Console.WriteLine($"Render time: {elapsed.Microseconds/1000f:0.00}ms");
     }
 
     public bool TryDebugScene(string img)
