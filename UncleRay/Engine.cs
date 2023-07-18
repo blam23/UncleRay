@@ -12,6 +12,7 @@ public class Engine
     private const int BytesPerPixel = 4;
 
     private Camera camera;
+    private int RaysPerPixel = 15;
 
     private readonly Random rng = new(123);
 
@@ -104,16 +105,24 @@ public class Engine
                 var u = (float)x / (width - 1);
                 var v = (float)y / (height - 1);
 
-                Ray r = new()
+                Vector3 pixel = Vector3.Zero;
+                for (var i = 0; i < RaysPerPixel; ++i)
                 {
-                    Origin = camera.Origin,
-                    Direction = camera.LLC + u*camera.Horizontal + v*camera.Vertical - camera.Origin
-                };
+                    Ray r = new()
+                    {
+                        Origin = camera.Origin + VecHelpers.RandomRange(rng, 0.002f),
+                        Direction = camera.LLC + u * camera.Horizontal + v * camera.Vertical - camera.Origin
+                    };
 
-                var pixel = RayColor(r);
+                    pixel += RayColor(r);
+                }
+
+                pixel /= RaysPerPixel;
+
                 WritePixel(x, y, pixel);
             }
         }
+
         var elapsed = new TimeSpan(Stopwatch.GetTimestamp() - start);
         Console.WriteLine($"Render time: {elapsed.Microseconds/1000f:0.00}ms");
     }
