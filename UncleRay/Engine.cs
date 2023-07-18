@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-﻿using System.Numerics;
+using System.Numerics;
 
 namespace UncleRay;
 
@@ -62,13 +62,35 @@ public class Engine
         WriteBMP(writer);
     }
 
+    private float HitSphere(Vector3 center, float radius, Ray r)
+    {
+        var oc = r.Origin - center;
+
+        // Solve the quadratic equation to see if we have intersections
+        var a = Vector3.DistanceSquared(Vector3.Zero, r.Direction);
+        var halfB = Vector3.Dot(oc, r.Direction);
+        var c = Vector3.DistanceSquared(Vector3.Zero, oc) - (radius * radius);
+        var disc = (halfB * halfB) - (a * c);
+
+        if (disc < 0)
+            return -1f;
+
+        return (-halfB - MathF.Sqrt(disc)) / a;
+    }
+
     private Vector3 RayColor(Ray r)
     {
-        var ud = Vector3.Normalize(r.Direction);
+        var t = HitSphere(new Vector3(0f, 0f, -1f), 0.5f, r);
 
-        // Just lerp between blue and white depending on Y
-        var t = 0.5f * (ud.Y + 1);
-        return (1f - t) * Vector3.One + t * new Vector3(0.4f, 0.7f, 1.0f);
+        if (t > 0f)
+        {
+            var n = Vector3.Normalize(r.At(t) - new Vector3(0, 0, -1));
+            return 0.5f * new Vector3(n.X + 1, n.Y + 1, n.Z + 1);
+        }
+
+        var ud = Vector3.Normalize(r.Direction);
+        t = 0.5f * (ud.Y + 1);
+        return (1.0f - t) * Vector3.One + t * new Vector3(0.5f, 0.7f, 1.0f);
     }
 
     public void Render()
