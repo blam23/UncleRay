@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using UncleRay.Material;
 
 namespace UncleRay;
 
@@ -11,13 +12,19 @@ public class Engine
     private readonly int height;
     private const int BytesPerPixel = 3;
 
-    private Camera camera;
-    private int RaysPerPixel = 15;
+    // Camera
+    private readonly Camera camera;
 
-    private long startTime = 0;
+    // Quality
+    private const int raysPerPixel = 150;
+    private const int maxDepth = 50;
+
+    // World
+    private readonly ObjectList objects = new();
+
+    // Timer
+    private readonly long startTime = 0;
     private TimeSpan deltaTime;
-
-    private readonly Random rng = new(123);
 
     public Engine(int width, int height)
     {
@@ -28,6 +35,11 @@ public class Engine
         camera = new Camera((float)width / height);
 
         startTime = Stopwatch.GetTimestamp();
+
+        var redMatte = new Matte(new Vector3(1, 0, 0));
+        var blueMatte = new Matte(new Vector3(0, 0, 1));
+        objects.Add(new Sphere(new(0, 0, -1), 0.5f,  redMatte));
+        objects.Add(new Sphere(new(0, -100.5f, -1), 100, blueMatte));
     }
 
     void WriteBMP(BinaryWriter writer)
@@ -68,35 +80,37 @@ public class Engine
         WriteBMP(writer);
     }
 
-    private float HitSphere(Vector3 center, float radius, Ray r)
+    private Vector3 RayColor(Random rng, Ray r, int depth = 0)
     {
-        var oc = r.Origin - center;
+        if (depth >= maxDepth)
+            return Vector3.Zero;
 
-        // Solve the quadratic equation to see if we have intersections
-        var a = Vector3.DistanceSquared(Vector3.Zero, r.Direction);
-        var halfB = Vector3.Dot(oc, r.Direction);
-        var c = Vector3.DistanceSquared(Vector3.Zero, oc) - (radius * radius);
-        var disc = (halfB * halfB) - (a * c);
-
-        if (disc < 0)
-            return -1f;
-
-        return (-halfB - MathF.Sqrt(disc)) / a;
-    }
-
-    private Vector3 RayColor(Ray r)
-    {
-        var t = HitSphere(new Vector3(0f, 0f, -1f), 0.1f * MathF.Sin((float)deltaTime.TotalMilliseconds * 0.001f) + 0.5f, r);
-
-        if (t > 0f)
+        if (objects.Hit(r, 0.001f, float.PositiveInfinity, out var hit))
         {
-            var n = Vector3.Normalize(r.At(t) - new Vector3(0, 0, -1));
-            return 0.5f * new Vector3(n.X + 1, n.Y + 1, n.Z + 1);
+            if (hit.Material.Scatter(rng, r, hit, out var color, out var newRay))
+            {
+                return color * RayColor(rng, newRay, depth + 1);
+            }
+
+            return Vector3.Zero;
         }
 
         var ud = Vector3.Normalize(r.Direction);
-        t = 0.5f * (ud.Y + 1);
+        var t = 0.5f * (ud.Y + 1);
         return (1.0f - t) * Vector3.One + t * new Vector3(0.5f, 0.7f, 1.0f);
+    }
+
+    class RenderChunkData
+    {
+        public int StartY, EndY;
+        public EventWaitHandle WaitHandle;
+
+        public RenderChunkData(int startY, int endY, EventWaitHandle waitHandle)
+        {
+            StartY = startY;
+            EndY = endY;
+            WaitHandle = waitHandle;
+        }
     }
 
     public void Render()
@@ -104,33 +118,69 @@ public class Engine
         var start = Stopwatch.GetTimestamp();
         deltaTime = new TimeSpan(start - startTime);
 
-        for(int y = height - 1; y >= 0; --y)
+        var handles = new List<EventWaitHandle>();
+        var chunkSize = height / Environment.ProcessorCount;
+        for (var y = height - 1; y >= 0; y -= chunkSize)
+        {
+            var end = y - chunkSize;
+            if (end < 0)
+                end = 0;
+
+            var ewh = new EventWaitHandle(false, EventResetMode.ManualReset);
+            handles.Add(ewh);
+
+            ThreadPool.QueueUserWorkItem(RenderCallback, new RenderChunkData(y, end, ewh));
+        }
+
+        foreach (var handle in handles)
+        {
+            handle.WaitOne();
+        }
+    }
+
+    public void RenderCallback(object? handle)
+    {
+        if (handle is RenderChunkData chunk)
+        {
+            RenderChunk(chunk.StartY, chunk.EndY);
+            chunk.WaitHandle.Set();
+        }
+    }
+
+    public void RenderChunk(int startY, int endY)
+    {
+        // Same seed each frame
+        Random rng = new(startY);
+
+        if (objects[0] is Sphere s1)
+            s1.Radius = 0.1f * MathF.Sin((float)deltaTime.TotalMilliseconds * 0.001f) + 0.5f;
+
+        for(int y = startY; y >= endY; --y)
         {
             for (int x = 0; x < width; ++x)
             {
-                var u = (float)x / (width - 1);
-                var v = (float)y / (height - 1);
-
                 Vector3 pixel = Vector3.Zero;
-                for (var i = 0; i < RaysPerPixel; ++i)
+                for (var i = 0; i < raysPerPixel; ++i)
                 {
+                    var u = (x + (float)rng.NextDouble()) / (width - 1);
+                    var v = (y + (float)rng.NextDouble()) / (height - 1);
+
                     Ray r = new()
                     {
-                        Origin = camera.Origin + VecHelpers.RandomRange(rng, 0.002f),
+                        Origin = camera.Origin,
                         Direction = camera.LLC + u * camera.Horizontal + v * camera.Vertical - camera.Origin
                     };
 
-                    pixel += RayColor(r);
+                    pixel += RayColor(rng, r);
                 }
 
-                pixel /= RaysPerPixel;
+                pixel /= raysPerPixel;
+                pixel = Vector3.SquareRoot(pixel);
+                Vector3.Clamp(pixel, Vector3.Zero, Vector3.One);
 
                 WritePixel(x, y, pixel);
             }
         }
-
-        //var elapsed = new TimeSpan(Stopwatch.GetTimestamp() - start);
-        //Console.WriteLine($"Render time: {elapsed.Microseconds/1000f:0.00}ms");
     }
 
     public bool TryDebugScene(string img)

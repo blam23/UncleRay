@@ -2,7 +2,7 @@
 
 namespace UncleRay;
 
-internal struct Ray
+public struct Ray
 {
     public Vector3 Origin;
     public Vector3 Direction;
