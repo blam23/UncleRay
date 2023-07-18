@@ -1,3 +1,4 @@
+﻿using System.Diagnostics;
 ﻿using System.Numerics;
 
 namespace UncleRay;
@@ -72,6 +73,8 @@ public class Engine
 
     public void Render()
     {
+        var start = Stopwatch.GetTimestamp();
+
         for(int y = height - 1; y >= 0; --y)
         {
             for (int x = 0; x < width; ++x)
@@ -89,6 +92,8 @@ public class Engine
                 WritePixel(x, y, pixel);
             }
         }
+        var elapsed = new TimeSpan(Stopwatch.GetTimestamp() - start);
+        Console.WriteLine($"Render time: {elapsed.Microseconds/1000f:0.00}ms");
     }
 
     public bool TryDebugScene(string img)
