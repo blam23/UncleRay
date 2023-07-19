@@ -16,8 +16,8 @@ public class Engine
     private readonly Camera camera;
 
     // Quality
-    private const int raysPerPixel = 500;
-    private const int maxDepth = 200;
+    public int RaysPerPixel = 500;
+    public int MaxDepth = 200;
 
     // World
     private readonly ObjectList objects = new();
@@ -80,7 +80,7 @@ public class Engine
 
     private Vector3 RayColor(Random rng, Ray r, int depth = 0)
     {
-        if (depth >= maxDepth)
+        if (depth >= MaxDepth)
             return Vector3.Zero;
 
         if (objects.Hit(r, 0.001f, float.PositiveInfinity, out var hit))
@@ -153,7 +153,7 @@ public class Engine
             for (int x = 0; x < width; ++x)
             {
                 Vector3 pixel = Vector3.Zero;
-                for (var i = 0; i < raysPerPixel; ++i)
+                for (var i = 0; i < RaysPerPixel; ++i)
                 {
                     var u = (x + (float)rng.NextDouble()) / (width - 1);
                     var v = (y + (float)rng.NextDouble()) / (height - 1);
@@ -167,7 +167,7 @@ public class Engine
                     pixel += RayColor(rng, r);
                 }
 
-                pixel /= raysPerPixel;
+                pixel /= RaysPerPixel;
                 pixel = Vector3.SquareRoot(pixel);
                 Vector3.Clamp(pixel, Vector3.Zero, Vector3.One);
 
