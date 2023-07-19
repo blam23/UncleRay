@@ -5,20 +5,20 @@ namespace UncleRay.Material;
 internal class Metal : IMaterial
 {
     public Vector3 Albedo;
-    public readonly float Fuzz; // Todo: make a property so it can be changed programatically
+    public readonly float Blur; // Todo: make a property so it can be changed programatically
 
-    public Metal(Vector3 albedo, float fuzz)
+    public Metal(Vector3 albedo, float blur)
     {
         Albedo = albedo;
-        Fuzz = fuzz < 1 ? fuzz : 1;
+        Blur = blur < 1 ? blur : 1;
     }
 
     public bool Scatter(Random rng, Ray rayIn, HitData hit, out Vector3 color, out Ray rayOut)
     {
         var reflected = VecHelpers.Reflect(rayIn.Direction, hit.Normal);
 
-        if (Fuzz < 1)
-            rayOut = new Ray { Origin = hit.Point, Direction = reflected + VecHelpers.RandomUnitSphere(rng) };
+        if (Blur > 0)
+            rayOut = new Ray { Origin = hit.Point, Direction = reflected + (VecHelpers.RandomUnitSphere(rng) * Blur) };
         else
             rayOut = new Ray { Origin = hit.Point, Direction = reflected };
 
