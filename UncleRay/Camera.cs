@@ -5,7 +5,7 @@ namespace UncleRay;
 internal readonly struct Camera
 {
     public readonly float AspectRatio;
-    public readonly float ViewportHeight = 2;
+    public readonly float ViewportHeight;
     public readonly float ViewportWidth;
     public readonly float FocalLength = 1;
     public readonly Vector3 Origin = Vector3.Zero;
@@ -13,9 +13,14 @@ internal readonly struct Camera
     public readonly Vector3 Vertical;
     public readonly Vector3 LLC;
 
-    public Camera(float aspectRatio)
+    public Camera(float fov, float aspectRatio)
     {
         AspectRatio = aspectRatio;
+
+        // Setup FoV
+        var theta = (MathF.PI / 180) * fov;
+        var h = MathF.Tan(theta / 2);
+        ViewportHeight = 2f * h;
         ViewportWidth = ViewportHeight * AspectRatio;
 
         Horizontal = new Vector3(ViewportWidth, 0, 0);

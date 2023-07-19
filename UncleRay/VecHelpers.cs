@@ -28,4 +28,12 @@ internal static class VecHelpers
     }
 
     public static Vector3 Reflect(Vector3 v, Vector3 n) => v - 2 * Vector3.Dot(v, n) * n;
+
+    public static Vector3 Refract(Vector3 uv, Vector3 normal, float ratio, float? cosThetaIn = null)
+    {
+        var cosTheta = cosThetaIn ?? MathF.Min(Vector3.Dot(-uv, normal), 1f);
+        var perpendicular = ratio * (uv + cosTheta * normal);
+        var parallel = -MathF.Sqrt(MathF.Abs(1f - Vector3.DistanceSquared(Vector3.Zero, perpendicular))) * normal;
+        return perpendicular + parallel;
+    }
 }

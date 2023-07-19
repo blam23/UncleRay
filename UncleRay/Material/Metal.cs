@@ -5,7 +5,7 @@ namespace UncleRay.Material;
 internal class Metal : IMaterial
 {
     public Vector3 Albedo;
-    public readonly float Blur; // Todo: make a property so it can be changed programatically
+    public readonly float Blur;
 
     public Metal(Vector3 albedo, float blur)
     {
