@@ -113,26 +113,7 @@ public class Engine
 
     public void Render()
     {
-        var start = Stopwatch.GetTimestamp();
-
-        var handles = new List<EventWaitHandle>();
-        var chunkSize = height / Environment.ProcessorCount;
-        for (var y = height - 1; y >= 0; y -= chunkSize)
-        {
-            var end = y - chunkSize;
-            if (end < 0)
-                end = 0;
-
-            var ewh = new EventWaitHandle(false, EventResetMode.ManualReset);
-            handles.Add(ewh);
-
-            ThreadPool.QueueUserWorkItem(RenderCallback, new RenderChunkData(y, end, ewh));
-        }
-
-        foreach (var handle in handles)
-        {
-            handle.WaitOne();
-        }
+        RenderWithPartials(null);
     }
 
     public void RenderCallback(object? handle)
@@ -181,5 +162,42 @@ public class Engine
         Render();
         SaveImage(img);
         return true;
+    }
+
+    public void RenderWithPartials(Action<byte[]>? renderUpdate, int renderUpdateIntervalMS = 100)
+    {
+        bool rendering = true;
+        var periodicUpdate = new Thread(() =>
+            {
+                while(rendering)
+                    renderUpdate?.Invoke(Data);
+
+                Thread.Sleep(20);
+            });
+        periodicUpdate.Start();
+
+        var start = Stopwatch.GetTimestamp();
+
+        var handles = new List<EventWaitHandle>();
+        var chunkSize = 6;
+        for (var y = height - 1; y >= 0; y -= chunkSize)
+        {
+            var end = y - chunkSize;
+            if (end < 0)
+                end = 0;
+
+            var ewh = new EventWaitHandle(false, EventResetMode.ManualReset);
+            handles.Add(ewh);
+
+            ThreadPool.QueueUserWorkItem(RenderCallback, new RenderChunkData(y, end, ewh));
+        }
+
+        foreach (var handle in handles)
+        {
+            handle.WaitOne();
+        }
+
+        rendering = false;
+        periodicUpdate.Join();
     }
 }

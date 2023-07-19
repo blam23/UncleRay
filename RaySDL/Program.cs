@@ -2,7 +2,9 @@
 using UncleRay;
 using UncleRay.SDL;
 
-var (width, height) = (620, 360);
+//var (width, height) = (620, 360);
+var (width, height) = (1240, 720);
+//var (width, height) = (1920, 1080);
 
 var renderer = new Engine(width, height);
 using var display = new Main(width, height, 1);
@@ -13,18 +15,20 @@ var dispThread = new Thread(() =>
 {
     if (oneshot)
     {
-        renderer.RaysPerPixel = 250;
-        renderer.MaxDepth = 250;
+        renderer.RaysPerPixel = 4000;
+        renderer.MaxDepth = 100;
 
         var start = Stopwatch.GetTimestamp();
-        {
-            renderer.Render();
-            display.SetPixels(renderer.Data);
-        }
+        
+        renderer.RenderWithPartials(display.SetPixels);
+        
         var end = Stopwatch.GetTimestamp();
         var duration = (end - start) / (Stopwatch.Frequency / 1000.0);
 
-        Console.WriteLine($"Render time: {duration:0.000}ms\nSize: {width},{height}\nRays per Pixel: {renderer.RaysPerPixel}\nRay Bounce Depth: {renderer.MaxDepth}\nCores: {Environment.ProcessorCount}");
+        Console.WriteLine($"Render time: {duration:0.000}ms");
+        Console.WriteLine($"Size: {width},{height}");
+        Console.WriteLine($"Rays per Pixel: {renderer.RaysPerPixel}");
+        Console.WriteLine($"Ray Bounce Depth: {renderer.MaxDepth}");
 
         return;
     }
