@@ -20,10 +20,12 @@ internal static class VecHelpers
         return Vector3.Dot(ruv, normal) > 0 ? ruv : -ruv;
     }
 
-    internal static bool NearZero(Vector3 v)
+    public static bool NearZero(Vector3 v)
     {
         var s = 1e-8;
         v = Vector3.Abs(v);
         return v.X < s && v.Y < s && v.Z < s;
     }
+
+    public static Vector3 Reflect(Vector3 v, Vector3 n) => v - 2 * Vector3.Dot(v, n) * n;
 }

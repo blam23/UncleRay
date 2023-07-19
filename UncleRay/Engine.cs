@@ -16,15 +16,11 @@ public class Engine
     private readonly Camera camera;
 
     // Quality
-    private const int raysPerPixel = 150;
-    private const int maxDepth = 50;
+    private const int raysPerPixel = 500;
+    private const int maxDepth = 200;
 
     // World
     private readonly ObjectList objects = new();
-
-    // Timer
-    private readonly long startTime = 0;
-    private TimeSpan deltaTime;
 
     public Engine(int width, int height)
     {
@@ -34,12 +30,14 @@ public class Engine
 
         camera = new Camera((float)width / height);
 
-        startTime = Stopwatch.GetTimestamp();
-
-        var redMatte = new Matte(new Vector3(1, 0, 0));
-        var blueMatte = new Matte(new Vector3(0, 0, 1));
-        objects.Add(new Sphere(new(0, 0, -1), 0.5f,  redMatte));
-        objects.Add(new Sphere(new(0, -100.5f, -1), 100, blueMatte));
+        var frostedMetal = new Metal(new Vector3(0.7f, 0.7f, 0.7f), 0.3f);
+        var shinyMetal = new Metal(new Vector3(0.7f, 0.7f, 0.7f), 1f);
+        var redMetal = new Metal(new Vector3(1f, 0.3f, 0.3f), 1f);
+        var blueMetal = new Metal(new Vector3(0.5f, 0.5f, 1), 1f);
+        objects.Add(new Sphere(new(0, 0, -1), 0.4f, redMetal));
+        objects.Add(new Sphere(new(1, 0, -2), 0.5f, shinyMetal));
+        objects.Add(new Sphere(new(-1, 0, -2), 0.5f, frostedMetal));
+        objects.Add(new Sphere(new(0, -100.5f, -1), 100, blueMetal));
     }
 
     void WriteBMP(BinaryWriter writer)
@@ -116,7 +114,6 @@ public class Engine
     public void Render()
     {
         var start = Stopwatch.GetTimestamp();
-        deltaTime = new TimeSpan(start - startTime);
 
         var handles = new List<EventWaitHandle>();
         var chunkSize = height / Environment.ProcessorCount;
@@ -149,11 +146,7 @@ public class Engine
 
     public void RenderChunk(int startY, int endY)
     {
-        // Same seed each frame
         Random rng = new(startY);
-
-        if (objects[0] is Sphere s1)
-            s1.Radius = 0.1f * MathF.Sin((float)deltaTime.TotalMilliseconds * 0.001f) + 0.5f;
 
         for(int y = startY; y >= endY; --y)
         {
