@@ -28,13 +28,13 @@ internal unsafe class Main
         window = new SDLSurfaceWindow(width, height, scale, "UncleRay");
         renderer = SDL.CreateRenderer(window.handle, -1, (uint)(RendererFlags.Accelerated));
 
-        //var frameTimer = new Timer((e) =>
-        //{
-        //    window.SetTitle($"UncleRay - FPS: {videoFrames}");
+        var frameTimer = new Timer((e) =>
+        {
+            window.SetTitle($"UncleRay - FPS: {videoFrames}");
 
-        //    videoFrames = 0;
-        //});
-        //frameTimer.Change(0, 1000);
+            videoFrames = 0;
+        });
+        frameTimer.Change(0, 1000);
 
         if (renderer == default(Renderer*))
             throw new Exception("Unable to create SDL renderer.");

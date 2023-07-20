@@ -11,13 +11,14 @@ public class Engine
     private readonly int width;
     private readonly int height;
     private const int BytesPerPixel = 3;
+    private int FrameNumber = 0;
 
     // Camera
     private readonly Camera camera;
 
     // Quality
-    public int RaysPerPixel = 500;
-    public int MaxDepth = 200;
+    public int RaysPerPixel = 4;
+    public int MaxDepth = 30;
 
     // World
     private readonly ObjectList objects = new();
@@ -96,6 +97,15 @@ public class Engine
         Data[index + 2] = (byte)(color.X * 255);
     }
 
+    private Vector3 GetPixel(int x, int y)
+    {
+        var index = (x + (height - y - 1) * width) * BytesPerPixel;
+        var B = Data[index + 0];
+        var G = Data[index + 1];
+        var R = Data[index + 2];
+        return new Vector3(R / 255f, G / 255f, B / 255f);
+    }
+
     public void SaveImage(string path)
     {
         using var writer = new BinaryWriter(File.Create(path));
@@ -127,12 +137,14 @@ public class Engine
     {
         public int StartY, EndY;
         public EventWaitHandle WaitHandle;
+        public int FrameNumber;
 
-        public RenderChunkData(int startY, int endY, EventWaitHandle waitHandle)
+        public RenderChunkData(int startY, int endY, EventWaitHandle waitHandle, int frameNumber)
         {
             StartY = startY;
             EndY = endY;
             WaitHandle = waitHandle;
+            FrameNumber = frameNumber;
         }
     }
 
@@ -145,14 +157,14 @@ public class Engine
     {
         if (handle is RenderChunkData chunk)
         {
-            RenderChunk(chunk.StartY, chunk.EndY);
+            RenderChunk(chunk.StartY, chunk.EndY, chunk.FrameNumber);
             chunk.WaitHandle.Set();
         }
     }
 
-    public void RenderChunk(int startY, int endY)
+    public void RenderChunk(int startY, int endY, int renderedFrames = 0)
     {
-        Random rng = new(startY);
+        Random rng = new(renderedFrames);
 
         for(int y = startY; y >= endY; --y)
         {
@@ -176,6 +188,13 @@ public class Engine
                 pixel /= RaysPerPixel;
                 pixel = Vector3.SquareRoot(pixel);
                 Vector3.Clamp(pixel, Vector3.Zero, Vector3.One);
+
+                if (renderedFrames > 0)
+                {
+                    var oldColor = GetPixel(x, y);
+                    var weight = 1.0f / (renderedFrames + 1);
+                    pixel = oldColor * (1f - weight) + pixel * weight;
+                }
 
                 WritePixel(x, y, pixel);
             }
@@ -204,17 +223,17 @@ public class Engine
         var start = Stopwatch.GetTimestamp();
 
         var handles = new List<EventWaitHandle>();
-        var chunkSize = 6;
+        var chunkSize = 20;
         for (var y = height - 1; y >= 0; y -= chunkSize)
         {
-            var end = y - chunkSize;
+            var end = y - chunkSize + 1;
             if (end < 0)
                 end = 0;
 
             var ewh = new EventWaitHandle(false, EventResetMode.ManualReset);
             handles.Add(ewh);
 
-            ThreadPool.QueueUserWorkItem(RenderCallback, new RenderChunkData(y, end, ewh));
+            ThreadPool.QueueUserWorkItem(RenderCallback, new RenderChunkData(y, end, ewh, FrameNumber));
         }
 
         foreach (var handle in handles)
@@ -224,5 +243,7 @@ public class Engine
 
         rendering = false;
         periodicUpdate.Join();
+
+        FrameNumber++;
     }
 }
