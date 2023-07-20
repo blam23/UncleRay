@@ -21,9 +21,9 @@ internal class Sphere : IObject
         var oc = r.Origin - Origin;
 
         // Solve the quadratic equation to see if we have intersections
-        var a = Vector3.DistanceSquared(Vector3.Zero, r.Direction);
+        var a = r.Direction.LengthSquared();
         var halfB = Vector3.Dot(oc, r.Direction);
-        var c = Vector3.DistanceSquared(Vector3.Zero, oc) - (Radius * Radius);
+        var c = oc.LengthSquared() - (Radius * Radius);
         var disc = (halfB * halfB) - (a * c);
 
         // No intersections

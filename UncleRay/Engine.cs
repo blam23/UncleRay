@@ -29,15 +29,17 @@ public class Engine
         this.height = height;
         Data = new byte[width * height * BytesPerPixel];
 
-        camera = new Camera(new Vector3(0, -0.3f, 0), new Vector3(0, 0, -1), new Vector3(0,1,0), 70, (float)width / height);
+        var camPos = new Vector3(0, -0.4f, 0);
+        var camLookat = new Vector3(0, -0.2f, -1f);
+        camera = new Camera(camPos, camLookat, new Vector3(0,1,0), 70, (float)width / height, 0.2f, Vector3.Distance(camPos, camLookat) -0.1f);
 
-        var miniMainBall = new Refractive(new Vector3(1f, 0.7f, 1f), 1.3f, 0.9f, 0.0f);
-        var bigSideBalls = new Metal(new Vector3(0.98f, 0.98f, 1f), 0.2f);
+        var miniMainBall = new Refractive(new Vector3(1f, 0.7f, 1f), 1.3f, 0.95f, 0.1f);
+        var bigSideBalls = new SoftReflect(new Vector3(0.98f, 0.98f, 1f), 0.8f, 0.01f);
         var mainBall = new SoftReflect(new Vector3(1f, 1f, 1f), 0.2f, 0.2f);
         var sideBalls = new SoftReflect(new Vector3(0.2f, 1f, 1f), 0.9f, 0.15f);
-        var floorBall = new SoftReflect(new Vector3(0.9f, 0.98f, 0.98f), 0.8f, 0.2f);
+        var floorBall = new SoftReflect(new Vector3(0.9f, 0.98f, 0.98f), 0.9f, 0.3f);
         objects.Add(new Sphere(new(0, 0.4f, -2f), 0.8f, mainBall));
-        objects.Add(new Sphere(new(0, -0.2f, -0.9f), 0.3f, miniMainBall));
+        objects.Add(new Sphere(new(0, -0.2f, -1f), 0.3f, miniMainBall));
         objects.Add(new Sphere(new(-0.4f, -0.2f, -1.3f), 0.25f, sideBalls));
         objects.Add(new Sphere(new(0.4f, -0.2f, -1.3f), 0.25f, sideBalls));
         objects.Add(new Sphere(new(1, 0, -1.5f), 0.38f, bigSideBalls));
@@ -176,11 +178,7 @@ public class Engine
                     var u = (x + (float)rng.NextDouble()) / (width - 1);
                     var v = (y + (float)rng.NextDouble()) / (height - 1);
 
-                    Ray r = new()
-                    {
-                        Origin = camera.Origin,
-                        Direction = camera.LLC + u * camera.Horizontal + v * camera.Vertical - camera.Origin
-                    };
+                    Ray r = camera.CastRay(rng, u, v);
 
                     pixel += RayColor(rng, r);
                 }

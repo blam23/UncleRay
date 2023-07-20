@@ -14,6 +14,18 @@ internal static class VecHelpers
 
     public static Vector3 RandomUnitSphere(Random rng) => RandomRange(rng, 1);
     public static Vector3 RandomUnitVector(Random rng) => Vector3.Normalize(RandomRange(rng, 1));
+    
+    public static Vector3 RandomUnitDisk(Random rng)
+    {
+        while(true)
+        {
+            var v = new Vector3(RandFloat(rng) * 2f - 0.5f, RandFloat(rng) * 2f - 0.5f, 0f);
+
+            if (v.LengthSquared() < 1)
+                return v;
+        }
+    }
+
     public static Vector3 RandomInHemisphere(Random rng, Vector3 normal)
     {
         var ruv = RandomUnitVector(rng);
@@ -33,7 +45,7 @@ internal static class VecHelpers
     {
         var cosTheta = cosThetaIn ?? MathF.Min(Vector3.Dot(-uv, normal), 1f);
         var perpendicular = ratio * (uv + cosTheta * normal);
-        var parallel = -MathF.Sqrt(MathF.Abs(1f - Vector3.DistanceSquared(Vector3.Zero, perpendicular))) * normal;
+        var parallel = -MathF.Sqrt(MathF.Abs(1f - perpendicular.LengthSquared())) * normal;
         return perpendicular + parallel;
     }
 }

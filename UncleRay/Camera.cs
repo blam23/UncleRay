@@ -4,32 +4,48 @@ namespace UncleRay;
 
 internal readonly struct Camera
 {
-    public readonly float AspectRatio;
-    public readonly float ViewportHeight;
-    public readonly float ViewportWidth;
-    public readonly Vector3 Origin;
-    public readonly Vector3 Horizontal;
-    public readonly Vector3 Vertical;
-    public readonly Vector3 LLC;
+    private readonly float aspectRatio;
+    private readonly float viewportHeight;
+    private readonly float viewportWidth;
+    private readonly Vector3 origin;
+    private readonly Vector3 hortizontal;
+    private readonly Vector3 vertical;
+    private readonly Vector3 lowerLeftCorner;
+    private readonly Vector3 w, u, v;
+    private readonly float lensRadius;
 
-    public Camera(Vector3 position, Vector3 lookAt, Vector3 up, float fov, float aspectRatio)
+    public Camera(Vector3 position, Vector3 lookAt, Vector3 up, float fov, float aspectRatio, float aperture, float focusDistance)
     {
-        AspectRatio = aspectRatio;
+        this.aspectRatio = aspectRatio;
 
         // Setup FoV
         var theta = (MathF.PI / 180) * fov;
         var h = MathF.Tan(theta / 2);
-        ViewportHeight = 2f * h;
-        ViewportWidth = ViewportHeight * AspectRatio;
+        viewportHeight = 2f * h;
+        viewportWidth = viewportHeight * this.aspectRatio;
 
         // Setup positon & angle
-        var w = Vector3.Normalize(position- lookAt);
-        var u = Vector3.Normalize(Vector3.Cross(up, w));
-        var v = Vector3.Cross(w, u);
+        w = Vector3.Normalize(position- lookAt);
+        u = Vector3.Normalize(Vector3.Cross(up, w));
+        v = Vector3.Cross(w, u);
 
-        Origin = position;
-        Horizontal = ViewportWidth * u;
-        Vertical = ViewportHeight * v;
-        LLC = Origin - (Horizontal / 2) - (Vertical / 2) - w;
+        origin = position;
+        hortizontal = focusDistance * viewportWidth * u;
+        vertical = focusDistance * viewportHeight * v;
+        lowerLeftCorner = origin - (hortizontal / 2) - (vertical / 2) - focusDistance * w;
+
+        lensRadius = aperture / 2;
+    }
+
+    public Ray CastRay(Random rng, float s, float t)
+    {
+        var randDisk = lensRadius * VecHelpers.RandomUnitDisk(rng);
+        var offset = u * randDisk.X + v * randDisk.Y;
+
+        return new()
+        {
+            Origin = origin + offset,
+            Direction = lowerLeftCorner + s * hortizontal + t * vertical - origin - offset
+        };
     }
 }
