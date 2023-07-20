@@ -19,11 +19,11 @@ internal class Refractive : IMaterial
 
     public bool Scatter(Random rng, Ray rayIn, HitData hit, out Vector3 color, out Ray rayOut)
     {
-        color = Albedo;
 
         if (rng.NextDouble() > Opacity)
         {
             rayOut = new Ray { Origin = hit.Point, Direction = VecHelpers.RandomInHemisphere(rng, hit.Normal) };
+            color = Albedo;
         }
         else
         {
@@ -41,6 +41,7 @@ internal class Refractive : IMaterial
                 : VecHelpers.Reflect(ud, hit.Normal);
 
             rayOut = new() { Origin = hit.Point, Direction = direction + VecHelpers.RandomInHemisphere(rng, hit.Normal) * Blur };
+            color = Vector3.One;
         }
 
         return true;
