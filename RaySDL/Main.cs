@@ -68,6 +68,8 @@ internal unsafe class Main
 
             window.BlitSurface();
 
+            System.Threading.Thread.Sleep(20);
+
             clock++;
             clock %= 100;
 
