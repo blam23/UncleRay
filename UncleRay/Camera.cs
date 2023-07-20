@@ -7,13 +7,12 @@ internal readonly struct Camera
     public readonly float AspectRatio;
     public readonly float ViewportHeight;
     public readonly float ViewportWidth;
-    public readonly float FocalLength = 1;
-    public readonly Vector3 Origin = Vector3.Zero;
+    public readonly Vector3 Origin;
     public readonly Vector3 Horizontal;
     public readonly Vector3 Vertical;
     public readonly Vector3 LLC;
 
-    public Camera(float fov, float aspectRatio)
+    public Camera(Vector3 position, Vector3 lookAt, Vector3 up, float fov, float aspectRatio)
     {
         AspectRatio = aspectRatio;
 
@@ -23,8 +22,14 @@ internal readonly struct Camera
         ViewportHeight = 2f * h;
         ViewportWidth = ViewportHeight * AspectRatio;
 
-        Horizontal = new Vector3(ViewportWidth, 0, 0);
-        Vertical = new Vector3(0, ViewportHeight, 0);
-        LLC = Origin - (Horizontal / 2) - (Vertical / 2) - new Vector3(0, 0, FocalLength);
+        // Setup positon & angle
+        var w = Vector3.Normalize(position- lookAt);
+        var u = Vector3.Normalize(Vector3.Cross(up, w));
+        var v = Vector3.Cross(w, u);
+
+        Origin = position;
+        Horizontal = ViewportWidth * u;
+        Vertical = ViewportHeight * v;
+        LLC = Origin - (Horizontal / 2) - (Vertical / 2) - w;
     }
 }

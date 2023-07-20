@@ -28,15 +28,15 @@ public class Engine
         this.height = height;
         Data = new byte[width * height * BytesPerPixel];
 
-        camera = new Camera(70, (float)width / height);
+        camera = new Camera(new Vector3(0, -0.3f, 0), new Vector3(0, 0, -1), new Vector3(0,1,0), 70, (float)width / height);
 
-        var miniMainBall = new Refractive(new Vector3(1f, 1f, 1f), 1.1f, 1f, 0.1f);
-        var bigSideBalls = new Metal(new Vector3(1f, 1f, 1f), 0.1f);
-        var mainBall = new SoftReflect(new Vector3(0.2f, 0.2f, 1f), 0.9f, 0.1f);
-        var sideBalls = new Metal(new Vector3(1f, 0f, 1f), 0.1f);
-        var floorBall = new SoftReflect(new Vector3(1f, 1f, 1f), 1f, 0.1f);
+        var miniMainBall = new Refractive(new Vector3(1f, 0.7f, 1f), 1.3f, 0.9f, 0.0f);
+        var bigSideBalls = new Metal(new Vector3(0.98f, 0.98f, 1f), 0.2f);
+        var mainBall = new SoftReflect(new Vector3(1f, 1f, 1f), 0.2f, 0.2f);
+        var sideBalls = new SoftReflect(new Vector3(0.2f, 1f, 1f), 0.9f, 0.15f);
+        var floorBall = new SoftReflect(new Vector3(0.9f, 0.98f, 0.98f), 0.8f, 0.2f);
         objects.Add(new Sphere(new(0, 0.4f, -2f), 0.8f, mainBall));
-        objects.Add(new Sphere(new(0, -0.2f, -0.9f), 0.25f, miniMainBall));
+        objects.Add(new Sphere(new(0, -0.2f, -0.9f), 0.3f, miniMainBall));
         objects.Add(new Sphere(new(-0.4f, -0.2f, -1.3f), 0.25f, sideBalls));
         objects.Add(new Sphere(new(0.4f, -0.2f, -1.3f), 0.25f, sideBalls));
         objects.Add(new Sphere(new(1, 0, -1.5f), 0.38f, bigSideBalls));
@@ -119,7 +119,8 @@ public class Engine
 
         var ud = Vector3.Normalize(r.Direction);
         var t = 0.5f * (ud.Y + 1);
-        return (1.0f - t) * new Vector3(0.9f, 0.9f, 0.9f) + t * new Vector3(0.0f, 0.9f, 0.9f);
+        // new Vector3(0.356f, 0.811f, 0.980f)
+        return (1.0f - t) * Vector3.One + t * new Vector3(0.6f, 0.7f, 0.8f);
     }
 
     class RenderChunkData
