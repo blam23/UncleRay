@@ -17,7 +17,7 @@ public class Engine
     private readonly Camera camera;
 
     // Quality
-    public int RaysPerPixel = 4;
+    public int RaysPerPixel = 5;
     public int MaxDepth = 30;
 
     // World
@@ -29,21 +29,27 @@ public class Engine
         this.height = height;
         Data = new byte[width * height * BytesPerPixel];
 
-        var camPos = new Vector3(0, -0.4f, 0);
+        var camPos = new Vector3(0, 1f, 1f);
         var camLookat = new Vector3(0, -0.2f, -1f);
-        camera = new Camera(camPos, camLookat, new Vector3(0,1,0), 70, (float)width / height, 0.2f, Vector3.Distance(camPos, camLookat) -0.1f);
+        camera = new Camera(camPos, camLookat, new Vector3(0,1,0), 90, (float)width / height, 0.01f, Vector3.Distance(camPos, camLookat) -0.1f);
 
-        var miniMainBall = new Refractive(new Vector3(1f, 0.7f, 1f), 1.3f, 0.95f, 0.1f);
-        var bigSideBalls = new SoftReflect(new Vector3(0.98f, 0.98f, 1f), 0.8f, 0.01f);
-        var mainBall = new SoftReflect(new Vector3(1f, 1f, 1f), 0.2f, 0.2f);
-        var sideBalls = new SoftReflect(new Vector3(0.2f, 1f, 1f), 0.9f, 0.15f);
-        var floorBall = new SoftReflect(new Vector3(0.9f, 0.98f, 0.98f), 0.9f, 0.3f);
+        var miniMainBall = new Refractive(new Vector3(1f, 0.7f, 1f), 1.03f, 0.9f, 0f);
+        var bigbigSideBallCover = new Refractive(new Vector3(1f, 1f, 1f), 1.0f, 0.98f, 0.03f);
+        var bigSideBalls = new Metal(new Vector3(0.98f, 0.98f, 1f), 0f);
+        var mainBall = new SoftReflect(new Vector3(0.0f, 1f, 1f), 0.5f, 0.5f);
+        var sideBalls = new SoftReflect(new Vector3(1f, 0.2f, 1f), 0.7f, 0.01f);
+        var floorBall = new Metal(new Vector3(1f, 0.7f, 1f), 0.0f);
+        var bigbigSideBalls = new SoftReflect(new Vector3(1f, 0.8f, 1f), 1f, 0.01f);
         objects.Add(new Sphere(new(0, 0.4f, -2f), 0.8f, mainBall));
-        objects.Add(new Sphere(new(0, -0.2f, -1f), 0.3f, miniMainBall));
-        objects.Add(new Sphere(new(-0.4f, -0.2f, -1.3f), 0.25f, sideBalls));
-        objects.Add(new Sphere(new(0.4f, -0.2f, -1.3f), 0.25f, sideBalls));
-        objects.Add(new Sphere(new(1, 0, -1.5f), 0.38f, bigSideBalls));
-        objects.Add(new Sphere(new(-1, 0, -1.5f), 0.38f, bigSideBalls));
+        objects.Add(new Sphere(new(0, -1f, -2.5f), -2.3f, miniMainBall));
+        objects.Add(new Sphere(new(-0.4f, -0.2f, -1.3f), 0.2f, sideBalls));
+        objects.Add(new Sphere(new(0.4f, -0.2f, -1.3f), 0.2f, sideBalls));
+        objects.Add(new Sphere(new(0.93f, 0, -1.35f), 0.36f, bigSideBalls));
+        objects.Add(new Sphere(new(-0.93f, 0, -1.35f), 0.36f, bigSideBalls));
+        objects.Add(new Sphere(new(2.93f, 0, -1.35f), 1f, bigbigSideBalls));
+        objects.Add(new Sphere(new(-2.93f, 0, -1.35f), 1f, bigbigSideBalls));
+        objects.Add(new Sphere(new(2.93f, 0, -1.35f), -1.01f, bigbigSideBallCover));
+        objects.Add(new Sphere(new(-2.93f, 0, -1.35f), -1.01f, bigbigSideBallCover));
         objects.Add(new Sphere(new(0, -100.5f, -1), 100, floorBall));
 
         //GenerateSpheres();
@@ -150,10 +156,7 @@ public class Engine
         }
     }
 
-    public void Render()
-    {
-        RenderWithPartials(null);
-    }
+    public bool Render() => RenderWithPartials(null);
 
     public void RenderCallback(object? handle)
     {
@@ -206,22 +209,26 @@ public class Engine
         return true;
     }
 
-    public void RenderWithPartials(Action<byte[]>? renderUpdate, int renderUpdateIntervalMS = 50)
+    public bool RenderWithPartials(Action<byte[]>? renderUpdate, int renderUpdateIntervalMS = 50)
     {
+        if (FrameNumber > 70)
+            return false;
+
         bool rendering = true;
         var periodicUpdate = new Thread(() =>
             {
-                while(rendering)
+                while (rendering)
+                {
                     renderUpdate?.Invoke(Data);
-
-                Thread.Sleep(renderUpdateIntervalMS);
+                    Thread.Sleep(renderUpdateIntervalMS);
+                }
             });
         periodicUpdate.Start();
 
         var start = Stopwatch.GetTimestamp();
 
         var handles = new List<EventWaitHandle>();
-        var chunkSize = 20;
+        var chunkSize = 4;
         for (var y = height - 1; y >= 0; y -= chunkSize)
         {
             var end = y - chunkSize + 1;
@@ -243,5 +250,7 @@ public class Engine
         periodicUpdate.Join();
 
         FrameNumber++;
+
+        return true;
     }
 }

@@ -15,7 +15,7 @@ var dispThread = new Thread(() =>
 {
     if (oneshot)
     {
-        renderer.RaysPerPixel = 4000;
+        renderer.RaysPerPixel = 1000;
         renderer.MaxDepth = 100;
 
         var start = Stopwatch.GetTimestamp();
@@ -35,8 +35,12 @@ var dispThread = new Thread(() =>
 
     while (running)
     {
-        renderer.Render();
-        display.SetPixels(renderer.Data);
+        var gotFrame = renderer.Render();
+
+        if (gotFrame)
+            display.SetPixels(renderer.Data);
+        else
+            Thread.Sleep(100);
     }
 });
 
